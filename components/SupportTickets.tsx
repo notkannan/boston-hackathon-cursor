@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createTicket, getAllTickets, type Ticket } from "@/lib/tickets";
+import { getAllTickets, type Ticket } from "@/lib/tickets";
 
 function priorityBadge(priority: Ticket["priority"]) {
   if (priority === "high")
@@ -72,15 +72,24 @@ export function SupportTickets() {
     setSubmitting(true);
     setSubmitResult(null);
     try {
-      await createTicket({ userEmail: email, issue });
-      setSubmitResult({ ok: true, message: "Ticket submitted! We'll be in touch soon." });
-      setEmail("");
-      setIssue("");
-    } catch (err) {
-      setSubmitResult({
-        ok: false,
-        message: err instanceof Error ? err.message : "Something went wrong",
+      const res = await fetch("/api/support-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: email, issue }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitResult({ ok: false, message: data.error ?? "Something went wrong" });
+      } else {
+        setSubmitResult({
+          ok: true,
+          message: `Ticket #${data.ticketId} submitted! Check your inbox — we've sent you a confirmation.`,
+        });
+        setEmail("");
+        setIssue("");
+      }
+    } catch {
+      setSubmitResult({ ok: false, message: "Network error — please try again" });
     } finally {
       setSubmitting(false);
     }

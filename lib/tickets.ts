@@ -2,6 +2,8 @@ import {
   collection,
   addDoc,
   getDocs,
+  doc,
+  updateDoc,
   orderBy,
   query,
   serverTimestamp,
@@ -37,6 +39,13 @@ export async function createTicket(input: CreateTicketInput): Promise<string> {
     createdAt: serverTimestamp(),
   });
   return docRef.id;
+}
+
+export async function updateTicketPriority(
+  id: string,
+  priority: TicketPriority
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), { priority });
 }
 
 export async function getAllTickets(): Promise<Ticket[]> {
