@@ -2,10 +2,20 @@ import { Inkbox } from "@inkbox/sdk";
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { createTicket, updateTicketPriority } from "@/lib/tickets";
+import companyContextRaw from "@/lib/company-context.json";
 
 const AGENT_HANDLE = "agent-hack";
 const AGENT_INBOX = "agenthack@inkboxmail.com";
 const OWNER_EMAIL = process.env.SUPPORT_ALERT_EMAIL ?? "kannan060200@hotmail.com";
+
+type ContextPage = { url: string; title: string; description: string; content: string };
+
+// Build a concise knowledge snippet from the crawled site — skip heavy member list pages
+const COMPANY_KNOWLEDGE = (companyContextRaw.pages as ContextPage[])
+  .filter((p) => !p.title.toLowerCase().includes("member") && p.content.length > 100)
+  .slice(0, 8)
+  .map((p) => `### ${p.title}\n${p.content.slice(0, 800)}`)
+  .join("\n\n---\n\n");
 
 async function getOrCreateIdentity(inkbox: Inkbox) {
   try {
@@ -97,21 +107,23 @@ LOW priority: general how-to questions, feature requests, minor UI bugs, feedbac
   await updateTicketPriority(ticketId, priority);
 
   // ── 6. Generate a soothing reply for the user ────────────────────────────
-  const toneInstruction =
+  const systemPrompt =
     priority === "high"
-      ? "The issue is urgent. Acknowledge the severity and assure them this is being treated as top priority. The team will respond within the hour."
-      : "The issue is routine. Acknowledge their concern warmly and let them know the team will look into it soon.";
+      ? `You are Alex, the Cursor Boston support agent. The user's issue is urgent.
+Acknowledge the severity, assure them the team is treating this as top priority, and that someone will reach out very soon.
+Keep it under 80 words. Start with "Hi," — do not use emojis or bullet points.`
+      : `You are Alex, the Cursor Boston support agent.
+Use the following Cursor Boston knowledge base to give an accurate, helpful answer if the information is available.
+If you can directly answer the question, do so. Otherwise, let them know the team will follow up.
+Keep it under 100 words. Start with "Hi," — do not use emojis or bullet points.
+
+CURSOR BOSTON KNOWLEDGE BASE:
+${COMPANY_KNOWLEDGE}`;
 
   const replyCompletion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      {
-        role: "system",
-        content: `You are Alex, a warm and professional customer support agent. 
-Write a short, empathetic email reply to a user who submitted a support ticket.
-${toneInstruction}
-Keep it under 80 words. Start with "Hi," — do not use emojis or bullet points.`,
-      },
+      { role: "system", content: systemPrompt },
       { role: "user", content: `User's issue: ${issue}` },
     ],
   });
@@ -123,11 +135,17 @@ Keep it under 80 words. Start with "Hi," — do not use emojis or bullet points.
     to: [userEmail],
     subject:
       priority === "high"
-        ? "We're treating your request as urgent"
-        : "We received your support request",
+        ? "[Cursor Boston] We're treating your request as urgent"
+        : "[Cursor Boston] We received your support request",
     bodyText: replyText,
     bodyHtml: `
-      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:40px 24px;">
+      <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:40px 24px;background:#fff;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;">
+          <div style="width:28px;height:28px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M13 3L4 14h8l-1 7 9-11h-8l1-7z" fill="white"/></svg>
+          </div>
+          <span style="font-size:14px;font-weight:600;color:#111;">Cursor Boston Support</span>
+        </div>
         ${
           priority === "high"
             ? `<div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:4px;margin-bottom:24px;">
@@ -139,7 +157,7 @@ Keep it under 80 words. Start with "Hi," — do not use emojis or bullet points.
           ${replyText.replace(/\n/g, "<br>")}
         </p>
         <hr style="border:none;border-top:1px solid #eee;margin:0 0 16px;">
-        <p style="margin:0;font-size:12px;color:#aaa;">Support ticket #${ticketId} · Powered by Inkbox</p>
+        <p style="margin:0;font-size:12px;color:#aaa;">Ticket #${ticketId} · <a href="https://cursorboston.com" style="color:#4f46e5;text-decoration:none;">cursorboston.com</a></p>
       </div>`,
   });
 
@@ -147,7 +165,7 @@ Keep it under 80 words. Start with "Hi," — do not use emojis or bullet points.
   if (priority === "high") {
     await identity.sendEmail({
       to: [OWNER_EMAIL],
-      subject: `🚨 Urgent ticket #${ticketId} from ${userEmail}`,
+      subject: `🚨 [Cursor Boston] Urgent ticket #${ticketId} from ${userEmail}`,
       bodyText: `A high-priority support ticket needs your immediate attention.\n\nFrom: ${userEmail}\nTicket ID: ${ticketId}\n\nIssue:\n${issue}`,
       bodyHtml: `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:40px 24px;">

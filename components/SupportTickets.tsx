@@ -115,7 +115,7 @@ export function SupportTickets() {
                 Submit a Support Request
               </CardTitle>
               <CardDescription className="text-sm">
-                Describe your issue and we&apos;ll get back to you as quickly as possible.
+                Questions about events, hackathon registration, Discord, streaks, or anything else — we&apos;ll get back to you promptly.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-2">
@@ -128,7 +128,7 @@ export function SupportTickets() {
                     id="email"
                     type="email"
                     required
-                    placeholder="you@example.com"
+                    placeholder="you@cursorboston.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={submitting}
@@ -143,7 +143,7 @@ export function SupportTickets() {
                   <Textarea
                     id="issue"
                     required
-                    placeholder="Tell us what's going wrong…"
+                    placeholder="e.g. I registered for the Hack-a-Sprint on Luma but haven't received approval. My Discord invite link isn't working. I'd like to submit a talk idea…"
                     value={issue}
                     onChange={(e) => setIssue(e.target.value)}
                     disabled={submitting}

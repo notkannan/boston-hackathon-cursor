@@ -15,8 +15,8 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Support",
-  description: "Customer support ticket management",
+  title: "Support · Cursor Boston",
+  description: "Get help with events, registration, hackathons, and community questions.",
 };
 
 export default function RootLayout({
