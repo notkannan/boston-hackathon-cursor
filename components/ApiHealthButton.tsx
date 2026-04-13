@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
-export function Button() {
+export function ApiHealthButton() {
   const [status, setStatus] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,16 +19,12 @@ export function Button() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={handleClick}
-        className="rounded-full border px-5 py-2 text-sm font-medium"
-      >
-        Get API Health
-      </button>
-      {status !== null && <p className="text-sm">HTTP status: {status}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <div className="flex flex-col items-start gap-2">
+      <Button onClick={handleClick}>Get API Health</Button>
+      {status !== null && (
+        <p className="text-sm text-foreground">HTTP status: {status}</p>
+      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
